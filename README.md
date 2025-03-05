@@ -6,9 +6,10 @@ Faker customer,restaurant,order,delivery and delivery person data
 Database Design:
 Mysql schema
 CURD Operations:
-A streamlit app for managing customer,order,restaurant,user.
+A streamlit app for managing user.
 Data Insights:
 SQL queries 
+Data Insights & Visualization
 # install libraries
 pip install mysql-connector-python
 pip install faker
@@ -18,6 +19,7 @@ Backend:python
 Fontend:streamlit(CURD)
 Data Generation:Faker(synthetic dataset)
 Data Analysis:SQL queries,python
+Connect :tidbcloud
 # Database Schema
 Customers - stores customer details.
 Restaurants - contains restaurants data.
