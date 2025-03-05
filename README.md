@@ -28,7 +28,6 @@ Deliveries - stores delivery details.
 Delivery person - stores delivery person details.
 # Business Use Cases for Zomato Food Delivery Data Analysis
 Your SQL queries provide insights that can be directly mapped to critical business use cases. Below is how they align with operational efficiency, customer satisfaction, and business growth.
-
 1. Order Management & Demand Analysis
 Use Cases:
 Peak Ordering Locations → Identify high-demand areas for better restaurant and delivery allocation.
