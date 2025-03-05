@@ -351,7 +351,41 @@ elif page == "Visualizations":
                 fig = px.bar(df, x="customer_name", y="total_orders", title="Top Customers by Order Frequency", labels={"customer_name": "Customer Name", "total_orders": "Order Count"})
                 st.plotly_chart(fig)
 
+            elif selected_query == "Preferred Cuisines":
+                fig = px.pie(df, names="preferred_cuisine", values="cuisine_count", 
+                title=" Preferred Cuisines Among Customers", hole=0.4)
+                st.plotly_chart(fig)
 
+            elif selected_query == "Most Popular Restaurants by Order Frequency":
+                fig = px.bar(df, x="restaurant_name", y="order_frequency", 
+                title=" Most Popular Restaurants", color="order_frequency", 
+                color_continuous_scale="Viridis")
+                st.plotly_chart(fig)
 
+            elif selected_query == "Preferred Cuisines":
+                fig = px.pie(df, names="preferred_cuisine", values="cuisine_count", 
+                title="Preferred Cuisines Among Customers", hole=0.4)
+                st.plotly_chart(fig)
+
+            elif selected_query == "Most Popular Restaurants by Order Frequency":
+                fig = px.bar(df, x="restaurant_name", y="order_frequency", 
+                title="Most Popular Restaurants", color="order_frequency", 
+                color_continuous_scale="Viridis")
+                st.plotly_chart(fig)
+
+            elif selected_query == "Orders with Significant Delivery Delays":
+                fig = px.bar(df, x="order_id", y="delay_minutes",
+                title="Orders with Significant Delivery Delays",
+                labels={"order_id": "Order ID", "delay_minutes": "Delay (Minutes)"},
+                color="delay_minutes", color_continuous_scale="Reds")
+                st.plotly_chart(fig, use_container_width=True) 
+
+            elif selected_query == "Top Customers by Total Order Value":
+                fig = px.bar(df, x="customer_name", y="total_order_value", 
+                title="Top Customers by Total Order Value", 
+                labels={"customer_name": "Customer", "total_order_value": "Order Value"}, 
+                color="total_order_value", color_continuous_scale="Blues")
+                st.plotly_chart(fig, use_container_width=True)
+                
 if __name__ == "__main__":
     main()
