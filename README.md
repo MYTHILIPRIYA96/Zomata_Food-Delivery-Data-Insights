@@ -13,6 +13,8 @@ Data Insights & Visualization
 # install libraries
 pip install mysql-connector-python
 pip install faker
+pip install pandas
+pip install plotly
 # Tech Stack
 Database:MySQL
 Backend:python
@@ -20,6 +22,12 @@ Fontend:streamlit(CURD)
 Data Generation:Faker(synthetic dataset)
 Data Analysis:SQL queries,python
 Connect :tidbcloud
+# Technical Stack
+ SQL (MySQL) – Database management
+ Python (Faker, Pandas) – Data generation and processing
+ Streamlit – Interactive front-end for data entry and visualization
+ Plotly – Data visualization
+ Object-Oriented Programming (OOP) – Modular and reusable database operations
 # Database Schema
 Customers - stores customer details.
 Restaurants - contains restaurants data.
@@ -86,6 +94,7 @@ Relevant Queries:
 Query 4: Cancelled Deliveries
 Query 17: Restaurants with High Cancelled Orders
 Query 20: Orders with Significant Delivery Delays
-
 # Lincence 
 MIT
+# conclusion
+This project provides a scalable and dynamic solution for food delivery data management. With an interactive Streamlit tool and structured SQL queries, businesses can efficiently manage their orders, customers, deliveries,delivery person and restaurant insights to improve operations and enhance customer satisfaction.
