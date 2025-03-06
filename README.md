@@ -28,6 +28,7 @@ Connect :tidbcloud
  Streamlit – Interactive front-end for data entry and visualization
  Plotly – Data visualization
  Object-Oriented Programming (OOP) – Modular and reusable database operations
+ tibd: Might indicate using TiDB Cloud for database hosting.
 # Database Schema
 Customers - stores customer details.
 Restaurants - contains restaurants data.
