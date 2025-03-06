@@ -329,6 +329,36 @@ elif page == "Visualizations":
             "Peak Ordering Times": "SELECT HOUR(order_date) AS order_hour, COUNT(*) AS order_count FROM orders GROUP BY order_hour ORDER BY order_count DESC;",
             "Orders with Delivery Delays": "SELECT order_id, TIMESTAMPDIFF(MINUTE, order_date, delivery_time) AS delay_minutes FROM orders WHERE TIMESTAMPDIFF(MINUTE, order_date, delivery_time) > 30;",
             "Top Customers by Order Frequency": "SELECT c.name AS customer_name, COUNT(o.order_id) AS total_orders FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name ORDER BY total_orders DESC LIMIT 10;"
+            "Preferred Cuisines": """
+        SELECT preferred_cuisine, COUNT(*) AS cuisine_count
+        FROM customers
+        GROUP BY preferred_cuisine
+        ORDER BY cuisine_count DESC
+        LIMIT 6;
+    """,
+    
+    "Most Popular Restaurants by Order Frequency": """
+        SELECT r.name AS restaurant_name, COUNT(o.order_id) AS order_frequency
+        FROM restaurants r
+        JOIN orders o ON r.restaurant_id = o.restaurant_id
+        GROUP BY r.restaurant_id, r.name
+        ORDER BY order_frequency DESC;
+    """,
+
+    "Orders with Significant Delivery Delays": """
+        SELECT order_id, TIMESTAMPDIFF(MINUTE, order_date, delivery_time) AS delay_minutes
+        FROM orders
+        WHERE TIMESTAMPDIFF(MINUTE, order_date, delivery_time) > 15;
+    """,
+
+    "Top Customers by Total Order Value": """
+        SELECT c.name AS customer_name, ROUND(SUM(o.total_amount)) AS total_order_value
+        FROM customers c 
+        JOIN orders o ON c.customer_id = o.customer_id
+        GROUP BY c.customer_id, c.name
+        ORDER BY total_order_value DESC
+        LIMIT 10;
+    """
         }
         
         selected_query = st.sidebar.selectbox("Select Visualization Query", list(queries.keys()))
@@ -359,17 +389,6 @@ elif page == "Visualizations":
             elif selected_query == "Most Popular Restaurants by Order Frequency":
                 fig = px.bar(df, x="restaurant_name", y="order_frequency", 
                 title=" Most Popular Restaurants", color="order_frequency", 
-                color_continuous_scale="Viridis")
-                st.plotly_chart(fig)
-
-            elif selected_query == "Preferred Cuisines":
-                fig = px.pie(df, names="preferred_cuisine", values="cuisine_count", 
-                title="Preferred Cuisines Among Customers", hole=0.4)
-                st.plotly_chart(fig)
-
-            elif selected_query == "Most Popular Restaurants by Order Frequency":
-                fig = px.bar(df, x="restaurant_name", y="order_frequency", 
-                title="Most Popular Restaurants", color="order_frequency", 
                 color_continuous_scale="Viridis")
                 st.plotly_chart(fig)
 
