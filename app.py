@@ -2,6 +2,8 @@ import streamlit as st
 import mysql.connector
 import pandas as pd
 from faker import Faker
+from datetime import datetime
+import uuid
 import plotly.express as px
 
 # Initialize Faker
@@ -10,126 +12,260 @@ fake = Faker("en_IN")
 # Database Class
 class Database:
     def __init__(self, host, user, password, database):
-        self.conn = mysql.connector.connect(
+        self.connection = mysql.connector.connect(
             host=host,
             user=user,
             password=password,
             database=database
         )
-        self.cursor = self.conn.cursor()
-    
-    def create_user_table(self):
-        query = '''
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(100) NOT NULL,
-            email VARCHAR(100) UNIQUE NOT NULL,
-            phone VARCHAR(15),
-            address TEXT
-        )'''
-        self.cursor.execute(query)
-        self.conn.commit()
-    
-    def add_user(self, name, email, phone, address):
-        query = "INSERT INTO users (name, email, phone, address) VALUES (%s, %s, %s, %s)"
-        self.cursor.execute(query, (name, email, phone, address))
-        self.conn.commit()
-    
-    def get_users(self):
-        self.cursor.execute("SELECT * FROM users")
-        return self.cursor.fetchall()
-    
-    def update_user(self, user_id, name, email, phone, address):
-        query = "UPDATE users SET name=%s, email=%s, phone=%s, address=%s WHERE id=%s"
-        self.cursor.execute(query, (name, email, phone, address, user_id))
-        self.conn.commit()
-    
-    def delete_user(self, user_id):
-        query = "DELETE FROM users WHERE id=%s"
-        self.cursor.execute(query, (user_id,))
-        self.conn.commit()
+        self.cursor = self.connection.cursor()
+
+    def add_customer(self, customer_id, name, email, phone):
+        query = "INSERT INTO customers(customer_id, name, email, phone) VALUES (%s, %s, %s, %s)"
+        self.cursor.execute(query, (customer_id, name, email, phone))
+        self.connection.commit()
+
+    def add_restaurant(self, restaurant_id, name, location, cuisine_type):
+        query = "INSERT INTO restaurants (restaurant_id, name, location, cuisine_type) VALUES (%s, %s, %s, %s)"
+        self.cursor.execute(query, (restaurant_id, name, location, cuisine_type))
+        self.connection.commit()
+
+    def add_order(self, order_id, customer_id, restaurant_id, order_date, total_amount, status):
+        query = """
+        INSERT INTO orders (order_id, customer_id, restaurant_id, order_date, total_amount, status)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        self.cursor.execute(query, (order_id, customer_id, restaurant_id, order_date, total_amount, status))
+        self.connection.commit()
+
+    def add_delivery(self, delivery_id, order_id, delivery_person, delivery_time, status):
+        query = """
+        INSERT INTO deliveries (delivery_id, order_id, delivery_person, delivery_time, status)
+        VALUES (%s, %s, %s, %s, %s)
+        """
+        self.cursor.execute(query, (delivery_id, order_id, delivery_person, delivery_time, status))
+        self.connection.commit()
+
+    def update_customer(self, customer_id, name, email, phone):
+        query = "UPDATE customers SET name=%s, email=%s, phone=%s WHERE customer_id=%s"
+        self.cursor.execute(query, (name, email, phone, customer_id))
+        self.connection.commit()
+
+    def update_restaurant(self, restaurant_id, name, location, cuisine_type):
+        query = "UPDATE restaurants SET name=%s, location=%s, cuisine_type=%s WHERE restaurant_id=%s"
+        self.cursor.execute(query, (name, location, cuisine_type, restaurant_id))
+        self.connection.commit()
+
+    def update_order(self, order_id, customer_id, restaurant_id, order_date, total_amount, status):
+        query = """
+        UPDATE orders SET customer_id=%s, restaurant_id=%s, order_date=%s,
+        total_amount=%s, status=%s WHERE order_id=%s
+        """
+        self.cursor.execute(query, (customer_id, restaurant_id, order_date, total_amount, status, order_id))
+        self.connection.commit()
+
+    def update_delivery(self, delivery_id, order_id, delivery_person, delivery_time, status):
+        query = """
+        UPDATE deliveries SET order_id=%s, delivery_person=%s, delivery_time=%s, status=%s
+        WHERE delivery_id=%s
+        """
+        self.cursor.execute(query, (order_id, delivery_person, delivery_time, status, delivery_id))
+        self.connection.commit()
+
+    def delete_customer(self, name):
+        query = "DELETE FROM customers WHERE name=%s"
+        self.cursor.execute(query, (name,))
+        self.connection.commit()
+
+    def delete_restaurant(self, name):
+        query = "DELETE FROM restaurants WHERE name=%s"
+        self.cursor.execute(query, (name,))
+        self.connection.commit()
+
+    def delete_order_by_id(self, order_id):
+        query = "DELETE FROM orders WHERE order_id=%s"
+        self.cursor.execute(query, (order_id,))
+        self.connection.commit()
+
+    def delete_delivery_by_id(self, delivery_id):
+        query = "DELETE FROM deliveries WHERE delivery_id=%s"
+        self.cursor.execute(query, (delivery_id,))
+        self.connection.commit()
+
 
 # Database Connection Configuration
 def db_config():
     return mysql.connector.connect(
-        user='3obbBvALArqQPqW.root',
-        password='MtV1PAc27naJolYM',
-        host='gateway01.ap-southeast-1.prod.aws.tidbcloud.com',
-        database='zomato'
-    )
-
+    host="gateway01.ap-southeast-1.prod.aws.tidbcloud.com",
+    user="3obbBvALArqQPqW.root",
+    password="MtV1PAc27naJolYM",
+    database="zomato"
+)
 db = Database(host="gateway01.ap-southeast-1.prod.aws.tidbcloud.com", user="3obbBvALArqQPqW.root", password="MtV1PAc27naJolYM", database="zomato")
-conn = db.conn
+connection = db.connection
 
 # Sidebar Navigation
 st.sidebar.title("Zomato Data Management")
-page = st.sidebar.radio("Go to", ["CRUD Operations", "SQL Queries", "Visualizations"])
+menu = st.sidebar.selectbox("Select Action", ["Home", "CRUD Operations", "SQL Queries", "Visualizations"])
 
+# Main Content
 def main():
-    if page == "CRUD Operations":
-        st.title("Manage Database Records")
-        table_name = "users"
-        menu = ["Create", "Read", "Update", "Delete"]
-        choice = st.sidebar.selectbox("Menu", menu)
+    if menu == "Home":
+        st.title("Zomato Data Management Dashboard")
+        st.markdown("""
+        Welcome to the Zomato Streamlit App  
+        Use the left sidebar to perform CRUD Operations, run SQL queries, and view visualizations.
+        """)
 
-        if choice == "Create":
-            st.subheader("Add User")
-            name = st.text_input("Name")
-            email = st.text_input("Email")
-            phone = st.text_input("Phone")
-            address = st.text_area("Address")
-            if st.button("Add User"):
-                db.add_user(name, email, phone, address)
-                st.success("User Added Successfully")
-                # Show updated table data
+    elif menu == "CRUD Operations":
+        st.title("CRUD Operations")
+
+        table_name = st.sidebar.selectbox("Select Table", ["Customers", "Restaurants", "Orders", "Deliveries"])
+        operation = st.sidebar.radio("Select Operation", ["Create", "Read", "Update", "Delete"])
+
+        # ---------- CREATE ----------
+        if operation == "Create":
+            st.subheader(f"Add New Record to {table_name}")
+
+            if table_name == "Customers":
+                name = st.text_input("Customer Name")
+                email = st.text_input("Email")
+                phone = st.text_input("Phone")
+                if st.button("Add Customer"):
+                    customer_id = str(uuid.uuid4())
+                    db.add_customer(customer_id, name, email, phone)
+                    st.success("Customer Added Successfully")
+
+            elif table_name == "Restaurants":
+                name = st.text_input("Restaurant Name")
+                location = st.text_input("Location")
+                cuisine_type = st.text_input("Cuisine Type")
+                if st.button("Add Restaurant"):
+                    restaurant_id = str(uuid.uuid4())
+                    db.add_restaurant(restaurant_id, name, location, cuisine_type)
+                    st.success("Restaurant Added Successfully")
+
+            elif table_name == "Orders":
+                customer_id = st.text_input("Customer ID")
+                restaurant_id = st.text_input("Restaurant ID")
+                order_date = st.date_input("Order Date")
+                total_amount = st.number_input("Total Amount", min_value=0.0)
+                status = st.selectbox("Status", ["Pending", "Delivered", "Cancelled"])
+                if st.button("Add Order"):
+                    order_id = str(uuid.uuid4())
+                    db.add_order(order_id, customer_id, restaurant_id, order_date, total_amount, status)
+                    st.success("Order Added Successfully")
+
+            elif table_name == "Deliveries":
+                order_id = st.text_input("Order ID")
+                delivery_person = st.text_input("Delivery Person")
+                delivery_time = st.time_input("Delivery Time")
+                status = st.selectbox("Delivery Status", ["In Transit", "Delivered", "Delayed"])
+                if st.button("Add Delivery"):
+                    delivery_id = str(uuid.uuid4())
+                    db.add_delivery(delivery_id, order_id, delivery_person, str(delivery_time), status)
+                    st.success("Delivery Added Successfully")
+
+            # Show updated data
             st.subheader(f"Updated Data in `{table_name}`")
-            df = pd.read_sql(f"SELECT * FROM {table_name}", conn)
+            df = pd.read_sql(f"SELECT * FROM {table_name.lower()}", connection)
             st.dataframe(df)
 
-        elif choice == "Read":
-            st.subheader("Read Users")
-            users = db.get_users()
-            df = pd.DataFrame(users, columns=["ID", "Name", "Email", "Phone", "Address"])
-            st.dataframe(df.head())
+        # ---------- READ ----------
+        elif operation == "Read":
+            st.subheader(f"Data from `{table_name}` Table")
+            df = pd.read_sql(f"SELECT * FROM {table_name.lower()}", connection)
+            st.dataframe(df)
 
-        elif choice == "Update":
-            st.subheader("Update User")
-            user_id = st.number_input("User ID", min_value=1, step=1)
-            name = st.text_input("New Name")
-            email = st.text_input("New Email")
-            phone = st.text_input("New Phone")
-            address = st.text_area("New Address")
-            if st.button("Update User"):
-                db.update_user(user_id, name, email, phone, address)
-                st.success("User Updated Successfully")
-                 # Fetch and display the updated user table
-            st.subheader("Updated User")
-            users = db.get_users()
-            df = pd.DataFrame(users, columns=["ID", "Name", "Email", "Phone", "Address"])
-            st.dataframe(df) 
-    
+        # ---------- UPDATE ----------
+        elif operation == "Update":
+            st.subheader(f"Update Record in `{table_name}`")
 
-        elif choice == "Delete":
-            st.subheader("Delete User")
-            user_id = st.number_input("User ID", min_value=1, step=1)
-            if st.button("Delete User"):
-                db.delete_user(user_id)
-                st.success("User Deleted Successfully")
-                 # Show updated table data
+            if table_name == "Customers":
+                customer_id = st.text_input("Customer ID (existing)")
+                name = st.text_input("New Name")
+                email = st.text_input("New Email")
+                phone = st.text_input("New Phone")
+                if st.button("Update Customer"):
+                    db.update_customer(customer_id, name, email, phone)
+                    st.success("Customer Updated Successfully")
+
+            elif table_name == "Restaurants":
+                restaurant_id = st.text_input("Restaurant ID (existing)")
+                name = st.text_input("New Name")
+                location = st.text_input("New Location")
+                cuisine_type = st.text_input("New Cuisine Type")
+                if st.button("Update Restaurant"):
+                    db.update_restaurant(restaurant_id, name, location, cuisine_type)
+                    st.success("Restaurant Updated Successfully")
+
+            elif table_name == "Orders":
+                order_id = st.text_input("Order ID (existing)")
+                customer_id = st.text_input("New Customer ID")
+                restaurant_id = st.text_input("New Restaurant ID")
+                order_date = st.date_input("New Order Date")
+                total_amount = st.number_input("New Total Amount", min_value=0.0)
+                status = st.selectbox("New Status", ["Pending", "Delivered", "Cancelled"])
+                if st.button("Update Order"):
+                    db.update_order(order_id, customer_id, restaurant_id, order_date, total_amount, status)
+                    st.success("Order Updated Successfully")
+
+            elif table_name == "Deliveries":
+                delivery_id = st.text_input("Delivery ID (existing)")
+                order_id = st.text_input("New Order ID")
+                delivery_person = st.text_input("New Delivery Person")
+                delivery_time = st.time_input("New Delivery Time")
+                status = st.selectbox("New Delivery Status", ["In Transit", "Delivered", "Delayed"])
+                if st.button("Update Delivery"):
+                    db.update_delivery(delivery_id, order_id, delivery_person, str(delivery_time), status)
+                    st.success("Delivery Updated Successfully")
+
             st.subheader(f"Updated Data in `{table_name}`")
-            df = pd.read_sql(f"SELECT * FROM {table_name} ", conn)
+            df = pd.read_sql(f"SELECT * FROM {table_name.lower()}", connection)
+            st.dataframe(df)
+
+        # ---------- DELETE ----------
+        elif operation == "Delete":
+            st.subheader(f" Delete Record from `{table_name}`")
+
+            if table_name == "Customers":
+                name = st.text_input("Customer Name to Delete")
+                if st.button("Delete Customer"):
+                    db.delete_customer(name)
+                    st.success(" Customer Deleted Successfully")
+
+            elif table_name == "Restaurants":
+                name = st.text_input("Restaurant Name to Delete")
+                if st.button("Delete Restaurant"):
+                    db.delete_restaurant(name)
+                    st.success("Restaurant Deleted Successfully")
+
+            elif table_name == "Orders":
+                order_id = st.text_input("Order ID to Delete")
+                if st.button("Delete Order"):
+                    db.delete_order_by_id(order_id)
+                    st.success("Order Deleted Successfully")
+
+            elif table_name == "Deliveries":
+                delivery_id = st.text_input("Delivery ID to Delete")
+                if st.button("Delete Delivery"):
+                    db.delete_delivery_by_id(delivery_id)
+                    st.success("Delivery Deleted Successfully")
+
+            st.subheader(f"Updated Data in `{table_name}`")
+            df = pd.read_sql(f"SELECT * FROM {table_name.lower()}", connection)
             st.dataframe(df)
 
 
 
-    elif page == "SQL Queries":
-        st.title("SQL Query Execution")
+    elif menu == "SQL Queries":
+        st.title("SQL Queries for Business Insights ")
         
 # Database connection
-conn = db_config()
-cursor = conn.cursor()
+connection = db_config()
+cursor = connection.cursor()
 
-        # Sidebar for SQL Queries
+# Sidebar for SQL Queries
 query_options = [
     "Query 1: Peak Ordering Locations",
     "Query 2: Peak Ordering Times",
@@ -308,32 +444,51 @@ queries = {
         FROM orders
         WHERE TIMESTAMPDIFF(MINUTE, order_date, delivery_time) > 15;
     """}
-
-    # Run the selected query
+# Run the selected query
 if st.button("Run Query"):
-    if conn:
+    if connection:
         st.write(f"Running: {selected_query_option}")
-        df = pd.read_sql(queries[selected_query_option],conn )
+        df = pd.read_sql(queries[selected_query_option],connection )
         st.write(df)
 
 
     def fetch_data(query):
-     conn = db_config()
-     df = pd.read_sql(query, conn)
-     conn.close()
+     connection= db_config()
+     df = pd.read_sql(query, connection)
+     connection.close()
      return df
 
-elif page == "Visualizations":
+elif menu == "Visualizations":
         st.title("Data Visualizations")
+    
         queries = {
-            "Peak Ordering Times": "SELECT HOUR(order_date) AS order_hour, COUNT(*) AS order_count FROM orders GROUP BY order_hour ORDER BY order_count DESC;",
-            "Orders with Delivery Delays": "SELECT order_id, TIMESTAMPDIFF(MINUTE, order_date, delivery_time) AS delay_minutes FROM orders WHERE TIMESTAMPDIFF(MINUTE, order_date, delivery_time) > 30;",
-            "Top Customers by Order Frequency": "SELECT c.name AS customer_name, COUNT(o.order_id) AS total_orders FROM customers c JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name ORDER BY total_orders DESC LIMIT 10;"
-            "Preferred Cuisines": """
-        SELECT preferred_cuisine, COUNT(*) AS cuisine_count
-        FROM customers
-        GROUP BY preferred_cuisine
-        ORDER BY cuisine_count DESC
+    "Peak Ordering Times": """
+        SELECT HOUR(order_date) AS order_hour, COUNT(*) AS order_count 
+        FROM orders 
+        GROUP BY order_hour 
+        ORDER BY order_count DESC;
+    """,
+    
+    "Orders with Delivery Delays": """
+        SELECT order_id, TIMESTAMPDIFF(MINUTE, order_date, delivery_time) AS delay_minutes 
+        FROM orders 
+        WHERE TIMESTAMPDIFF(MINUTE, order_date, delivery_time) > 30;
+    """,
+    
+    "Top Customers by Order Frequency": """
+        SELECT c.name AS customer_name, COUNT(o.order_id) AS total_orders 
+        FROM customers c 
+        JOIN orders o ON c.customer_id = o.customer_id 
+        GROUP BY c.customer_id, c.name 
+        ORDER BY total_orders DESC 
+        LIMIT 10;
+    """,
+    
+    "Preferred Cuisines": """
+        SELECT preferred_cuisine, COUNT(*) AS cuisine_count 
+        FROM customers 
+        GROUP BY preferred_cuisine 
+        ORDER BY cuisine_count DESC 
         LIMIT 6;
     """,
     
@@ -344,13 +499,13 @@ elif page == "Visualizations":
         GROUP BY r.restaurant_id, r.name
         ORDER BY order_frequency DESC;
     """,
-
+    
     "Orders with Significant Delivery Delays": """
         SELECT order_id, TIMESTAMPDIFF(MINUTE, order_date, delivery_time) AS delay_minutes
         FROM orders
         WHERE TIMESTAMPDIFF(MINUTE, order_date, delivery_time) > 15;
     """,
-
+    
     "Top Customers by Total Order Value": """
         SELECT c.name AS customer_name, ROUND(SUM(o.total_amount)) AS total_order_value
         FROM customers c 
@@ -359,14 +514,15 @@ elif page == "Visualizations":
         ORDER BY total_order_value DESC
         LIMIT 10;
     """
-        }
+}
+
         
         selected_query = st.sidebar.selectbox("Select Visualization Query", list(queries.keys()))
 
         if st.button("Generate Chart"):
-            conn = db_config()
-            df = pd.read_sql(queries[selected_query], conn)
-            conn.close()
+            connection = db_config()
+            df = pd.read_sql(queries[selected_query], connection)
+            connection.close()
 
 
             if selected_query == "Peak Ordering Times":
