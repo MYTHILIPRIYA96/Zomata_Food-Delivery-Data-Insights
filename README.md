@@ -6,7 +6,7 @@ Faker customer,restaurant,order,delivery and delivery person data
 Database Design:
 Mysql schema
 CURD Operations:
-A streamlit app for managing user.
+A streamlit app for managing customer,restaurant,order,delivery .
 Data Insights:
 SQL queries 
 Data Insights & Visualization
@@ -18,7 +18,7 @@ pip install plotly
 # Tech Stack
 Database:MySQL
 Backend:python
-Fontend:streamlit(CURD)
+Fontend:streamlit(CURD opertion),SQL Queries, Visualizations.
 Data Generation:Faker(synthetic dataset)
 Data Analysis:SQL queries,python
 Connect :tidbcloud
