@@ -10,11 +10,6 @@ A streamlit app for managing customer,restaurant,order,delivery .
 Data Insights:
 SQL queries 
 Data Insights & Visualization
-# install libraries
-pip install mysql-connector-python
-pip install faker
-pip install pandas
-pip install plotly
 # Tech Stack
 Database:MySQL
 Backend:python
