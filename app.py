@@ -20,6 +20,10 @@ class Database:
         )
         self.cursor = self.connection.cursor()
 
+    def fetch_all(self, query):
+        self.cursor.execute(query)
+        return self.cursor.fetchall()
+    
     def add_customer(self, customer_id, name, email, phone):
         query = "INSERT INTO customers(customer_id, name, email, phone) VALUES (%s, %s, %s, %s)"
         self.cursor.execute(query, (customer_id, name, email, phone))
@@ -30,21 +34,30 @@ class Database:
         self.cursor.execute(query, (restaurant_id, name, location, cuisine_type))
         self.connection.commit()
 
-    def add_order(self, order_id, customer_id, restaurant_id, order_date, total_amount, status):
+    def add_order(self, order_id, customer_id, restaurant_id, order_date, total_amount, status,payment_mode):
         query = """
-        INSERT INTO orders (order_id, customer_id, restaurant_id, order_date, total_amount, status)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO orders (order_id, customer_id, restaurant_id, order_date, total_amount, status,payment_mode)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.execute(query, (order_id, customer_id, restaurant_id, order_date, total_amount, status))
+        self.cursor.execute(query, (order_id, customer_id, restaurant_id, order_date, total_amount, status,payment_mode))
         self.connection.commit()
 
-    def add_delivery(self, delivery_id, order_id, delivery_person, delivery_time, status):
+    def add_delivery(self, delivery_id, order_id, delivery_person_id, delivery_time, status):
         query = """
-        INSERT INTO deliveries (delivery_id, order_id, delivery_person, delivery_time, status)
+        INSERT INTO deliveries (delivery_id, order_id, delivery_person_id, delivery_time, status)
         VALUES (%s, %s, %s, %s, %s)
         """
-        self.cursor.execute(query, (delivery_id, order_id, delivery_person, delivery_time, status))
+        self.cursor.execute(query, (delivery_id, order_id, delivery_person_id, delivery_time, status))
         self.connection.commit()
+
+    def add_delivery_person(self, delivery_person_id, name,  contact_number):
+        query = """
+        INSERT INTO delivery_persons (delivery_person_id, name, contact_number)
+        VALUES (%s, %s, %s)
+        """
+        self.cursor.execute(query, (delivery_person_id, name,  contact_number))
+        self.connection.commit()
+
 
     def update_customer(self, customer_id, name, email, phone):
         query = "UPDATE customers SET name=%s, email=%s, phone=%s WHERE customer_id=%s"
@@ -72,6 +85,15 @@ class Database:
         self.cursor.execute(query, (order_id, delivery_person, delivery_time, status, delivery_id))
         self.connection.commit()
 
+    def update_delivery_person(self, delivery_person_id, name,  contact_number):
+        query = """
+        UPDATE delivery_persons
+        SET  name=%s,  contact_number=%s
+        WHERE delivery_person_id=%s
+        """
+        self.cursor.execute(query, (name, contact_number, delivery_person_id))
+        self.connection.commit()
+
     def delete_customer(self, name):
         query = "DELETE FROM customers WHERE name=%s"
         self.cursor.execute(query, (name,))
@@ -92,6 +114,10 @@ class Database:
         self.cursor.execute(query, (delivery_id,))
         self.connection.commit()
 
+    def delete_delivery_person_by_id(self, delivery_person_id):
+        query = "DELETE FROM delivery_persons WHERE delivery_person_id=%s"
+        self.cursor.execute(query, (delivery_person_id,))
+        self.connection.commit()
 
 # Database Connection Configuration
 def db_config():
@@ -120,7 +146,7 @@ def main():
     elif menu == "CRUD Operations":
         st.title("CRUD Operations")
 
-        table_name = st.sidebar.selectbox("Select Table", ["Customers", "Restaurants", "Orders", "Deliveries"])
+        table_name = st.sidebar.selectbox("Select Table", ["Customers", "Restaurants", "Orders", "Deliveries", "Delivery Persons"])
         operation = st.sidebar.radio("Select Operation", ["Create", "Read", "Update", "Delete"])
 
         # ---------- CREATE ----------
@@ -146,25 +172,40 @@ def main():
                     st.success("Restaurant Added Successfully")
 
             elif table_name == "Orders":
-                customer_id = st.text_input("Customer ID")
-                restaurant_id = st.text_input("Restaurant ID")
+                # Fetch existing valid customer and restaurant IDs from DB
+                customer_ids = [str(row[0]) for row in db.fetch_all("SELECT customer_id FROM customers")]
+                restaurant_ids = [str(row[0]) for row in db.fetch_all("SELECT restaurant_id FROM restaurants")]
+                selected_customer_id = st.selectbox("Select Customer ID", customer_ids)
+                selected_restaurant_id = st.selectbox("Select Restaurant ID", restaurant_ids)
                 order_date = st.date_input("Order Date")
                 total_amount = st.number_input("Total Amount", min_value=0.0)
                 status = st.selectbox("Status", ["Pending", "Delivered", "Cancelled"])
+                payment_mode = st.selectbox("Payment Mode", ["credit card", "cash", "UPI", "debit card", "net banking"])
                 if st.button("Add Order"):
                     order_id = str(uuid.uuid4())
-                    db.add_order(order_id, customer_id, restaurant_id, order_date, total_amount, status)
+                    db.add_order(order_id, selected_customer_id, selected_restaurant_id, order_date, total_amount, status,payment_mode)
                     st.success("Order Added Successfully")
 
             elif table_name == "Deliveries":
-                order_id = st.text_input("Order ID")
-                delivery_person = st.text_input("Delivery Person")
-                delivery_time = st.time_input("Delivery Time")
-                status = st.selectbox("Delivery Status", ["In Transit", "Delivered", "Delayed"])
-                if st.button("Add Delivery"):
-                    delivery_id = str(uuid.uuid4())
-                    db.add_delivery(delivery_id, order_id, delivery_person, str(delivery_time), status)
-                    st.success("Delivery Added Successfully")
+               order_ids = [str(row[0]) for row in db.fetch_all("SELECT order_id FROM orders")]
+               order_id = st.selectbox("Select Order ID", order_ids)
+               delivery_person_ids  = [str(row[0]) for row in db.fetch_all("SELECT delivery_person_id FROM delivery_persons")]
+               delivery_person_id = st.selectbox("Select Delivery Person ID", delivery_person_ids)
+               delivery_time = st.time_input("Delivery Time")
+               status = st.selectbox("Delivery Status", ["In Transit", "Delivered", "Delayed"])
+               if st.button("Add Delivery"):
+                  delivery_id = str(uuid.uuid4())
+                  db.add_delivery(delivery_id, order_id, delivery_person_id, str(delivery_time), status)
+                  st.success("Delivery Added Successfully")
+
+
+            elif table_name == "Delivery_Persons":
+                name = st.text_input("Name")
+                contact_number = st.text_input("Contact Number")
+                if st.button("Add Delivery Person"):
+                   delivery_person_id = str(uuid.uuid4())
+                   db.add_delivery_person(delivery_person_id, name, contact_number)
+                   st.success("Delivery Person Added Successfully")
 
             # Show updated data
             st.subheader(f"Updated Data in `{table_name}`")
@@ -200,25 +241,38 @@ def main():
                     st.success("Restaurant Updated Successfully")
 
             elif table_name == "Orders":
-                order_id = st.text_input("Order ID (existing)")
-                customer_id = st.text_input("New Customer ID")
-                restaurant_id = st.text_input("New Restaurant ID")
+                order_ids = [str(row[0]) for row in db.fetch_all("SELECT order_id FROM orders")]
+                customer_ids = [str(row[0]) for row in db.fetch_all("SELECT customer_id FROM customers")]
+                restaurant_ids = [str(row[0]) for row in db.fetch_all("SELECT restaurant_id FROM restaurants")]
+                selected_order_id = st.selectbox("Select Order ID to Update", order_ids)
+                selected_customer_id = st.selectbox("New Customer ID", customer_ids)
+                selected_restaurant_id = st.selectbox("New Restaurant ID", restaurant_ids)
                 order_date = st.date_input("New Order Date")
                 total_amount = st.number_input("New Total Amount", min_value=0.0)
                 status = st.selectbox("New Status", ["Pending", "Delivered", "Cancelled"])
                 if st.button("Update Order"):
-                    db.update_order(order_id, customer_id, restaurant_id, order_date, total_amount, status)
+                    db.update_order(selected_order_id, selected_customer_id, selected_restaurant_id, order_date, total_amount, status)
                     st.success("Order Updated Successfully")
 
             elif table_name == "Deliveries":
-                delivery_id = st.text_input("Delivery ID (existing)")
-                order_id = st.text_input("New Order ID")
+                delivery_ids = [str(row[0]) for row in db.fetch_all("SELECT delivery_id FROM deliveries")]
+                order_ids = [str(row[0]) for row in db.fetch_all("SELECT order_id FROM orders")]
+                selected_delivery_id = st.selectbox("Select Delivery ID to Update", delivery_ids)
+                selected_order_id = st.selectbox("New Order ID", order_ids)
                 delivery_person = st.text_input("New Delivery Person")
                 delivery_time = st.time_input("New Delivery Time")
                 status = st.selectbox("New Delivery Status", ["In Transit", "Delivered", "Delayed"])
                 if st.button("Update Delivery"):
-                    db.update_delivery(delivery_id, order_id, delivery_person, str(delivery_time), status)
+                    db.update_delivery(selected_delivery_id, selected_order_id, delivery_person, str(delivery_time), status)
                     st.success("Delivery Updated Successfully")
+
+            elif table_name == "Delivery_Persons":
+                delivery_person_id = st.text_input("Delivery Person ID (existing)")
+                name = st.text_input("New Name")
+                contact_number = st.text_input("New Contact Number")
+                if st.button("Update Delivery Person"):
+                   db.update_delivery_person(delivery_person_id, name, contact_number)
+                   st.success("Delivery Person Updated Successfully")
 
             st.subheader(f"Updated Data in `{table_name}`")
             df = pd.read_sql(f"SELECT * FROM {table_name.lower()}", connection)
@@ -252,6 +306,13 @@ def main():
                     db.delete_delivery_by_id(delivery_id)
                     st.success("Delivery Deleted Successfully")
 
+            elif table_name == "Delivery_Persons":
+                delivery_person_ids = [str(row[0]) for row in db.fetch_all("SELECT delivery_person_id FROM delivery_persons")]
+                selected_id = st.selectbox("Select Delivery Person ID to Delete", delivery_person_ids)
+                if st.button("Delete Delivery Person"):
+                   db.delete_delivery_person_by_id(selected_id)
+                   st.success("Delivery Person Deleted Successfully")
+                   
             st.subheader(f"Updated Data in `{table_name}`")
             df = pd.read_sql(f"SELECT * FROM {table_name.lower()}", connection)
             st.dataframe(df)
