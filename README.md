@@ -6,7 +6,7 @@ Faker customer,restaurant,order,delivery and delivery person data
 Database Design:
 Mysql schema
 CURD Operations:
-A streamlit app for managing customer,restaurant,order,delivery .
+A streamlit app for managing customer,restaurant,order,delivery,delivery person .
 Data Insights:
 SQL queries 
 Data Insights & Visualization
